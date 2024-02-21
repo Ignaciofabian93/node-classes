@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
-import db from "./db/db.js";
 import usuarios from "./routes/users.js";
+import { readFile, writeFile, mkdir } from "fs";
 
 // ../../ para volver atras usar ../
 
@@ -13,6 +13,26 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const writeFileDemo = async (filepath, filename, data) => {
+  mkdir(filepath, (err) => console.log(err));
+  writeFile(`${filepath}/${filename}`, data, (err) => {
+    console.log("Error: ", err);
+  });
+};
+
+const fileName = "demo.txt";
+const data = "Hola mundo, este es un ejemplo del modulo fs";
+
+await writeFileDemo("./demos", fileName, data);
+
+const readFileDemo = async (filepath) => {
+  readFile(filepath, "utf8", (err, data) => {
+    console.log("Error: ", err);
+    console.log("Data: ", data);
+  });
+};
+
+await readFileDemo(filePath);
 // http y https
 // http no tiene protocolo de seguridad (SSL)
 // https tiene protocolo de seguridad (SSL)

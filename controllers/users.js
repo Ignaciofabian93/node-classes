@@ -1,4 +1,6 @@
 import db from "../db/db.js";
+import * as jwt from "jsonwebtoken";
+import { genSalt, compare, hash } from "bcrypt";
 
 export const getUsers = async (req, res) => {
   try {
