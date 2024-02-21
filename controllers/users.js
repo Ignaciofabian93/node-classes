@@ -1,9 +1,39 @@
 import db from "../db/db.js";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { genSalt, compare, hash } from "bcrypt";
+import { config } from "dotenv";
+
+config();
+
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
+    if (rows) {
+      const comparePassword = await compare(password, rows[0].password);
+      if (comparePassword) {
+        const token = jwt.sign({ uid: rows[0].uid }, process.env.JWT_TOKEN, {
+          expiresIn: "1d",
+        });
+        return res
+          .status(200)
+          .json({ message: "Usuario logeado", token: token });
+      } else {
+        return res
+          .status(401)
+          .json({ message: "Credenciales incorrectas, revisa tu contraseña" });
+      }
+    }
+  } catch (error) {
+    console.log("Error en login: ", error);
+  }
+};
 
 export const getUsers = async (req, res) => {
   try {
+    console.log("USUARIO: ", req.body.user);
     const { rows, rowCount } = await db.query("SELECT * FROM users");
     console.log("usuarios: ", rows[0].name, "count: ", rowCount);
     res.status(200).json({
@@ -57,10 +87,13 @@ export const updateUser = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, password } = req.body;
+    const salt = await genSalt(10);
+    const hashedPassword = await hash(password, salt);
+    console.log("HASHED: ", hashedPassword);
     const response = await db.query(
-      `INSERT INTO users(name, email) VALUES($1, $2)`,
-      [name, email]
+      `INSERT INTO users(name, email, password) VALUES($1, $2, $3)`,
+      [name, email, hashedPassword]
     );
     console.log("RES: ", response);
     res.status(201).json({ message: "Usuario creado" });
@@ -72,7 +105,7 @@ export const createUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const response = await db.query(`DELETE FROM users WHERE uid = $1`, [id]);
+    await db.query(`DELETE FROM users WHERE uid = $1`, [id]);
     res.status(201).json({ message: "Usuario eliminado" });
   } catch (error) {
     console.log("Error al eliminar: ", error);
